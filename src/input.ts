@@ -25,12 +25,25 @@ export function registerInputHandlers(pi: ExtensionAPI, reg: BackgroundRegistry)
         // Abort the current turn so the bash tool returns the "backgrounded" result.
         ctx.abort?.();
 
-        // Resubmit the user's message as a follow-up — Pi delivers it
-        // after the current turn settles. No polling needed.
-        try {
-            pi.sendUserMessage(text, { deliverAs: "followUp" });
-        } catch {
-            // Session ended between abort and resubmit — nothing to deliver to.
+        // Resubmit the user's message once the aborted run settles. Queueing it
+        // as a followUp strands it: pi's post-run loop exits on the abort flag
+        // without draining the follow-up queue (and the TUI's abort hook clears
+        // the queues before a re-queue would land), so nothing ever delivers it.
+        // Delivered as a fresh turn after agent_settled instead.
+        const deliver = (): void => {
+            try {
+                pi.sendUserMessage(text);
+            } catch {
+                // Session ended between abort and resubmit — nothing to deliver to.
+            }
+        };
+        if (ctx.isIdle()) {
+            deliver();
+        } else {
+            const off = pi.on("agent_settled", () => {
+                off();
+                deliver();
+            });
         }
 
         return { action: "handled" };
