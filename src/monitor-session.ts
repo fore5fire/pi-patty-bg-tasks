@@ -12,7 +12,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { BackgroundRegistry } from "./state.ts";
 import {
-    DELIVER_FOLLOWUP,
+    DELIVER_WAKE,
     EVENT,
     MONITOR_MAX_LINES_PER_WINDOW,
     MONITOR_RATE_WINDOW_MS,
@@ -48,12 +48,12 @@ export function startMonitorSession(args: {
     let windowStart = Date.now();
     let windowLines = 0;
 
-    // Stream events stay live but passive (delivered as a follow-up, no wake) —
-    // they carry data the agent is actively watching and surface on the agent's
-    // next natural turn without spawning an unsolicited one. The terminal
-    // notice (stream ended / stopped / failed) goes through the coalescer
-    // instead (see finishMonitor), so a batch of monitors ending doesn't add
-    // to the wall of notices.
+    // Stream events wake the agent when idle (the user isn't engaged to
+    // prompt, so a passive append would sit unseen) and queue passively behind
+    // the current turn when streaming — they surface at the next natural turn
+    // boundary without interrupting. The terminal notice (stream ended /
+    // stopped / failed) goes through the coalescer instead (see finishMonitor),
+    // so a batch of monitors ending doesn't add to the wall of notices.
     const emitEvent = (lines: string[]): void => {
         if (lines.length === 0) return;
         pi.sendMessage(
@@ -63,7 +63,7 @@ export function startMonitorSession(args: {
                 display: true,
                 details: { jobId: id, description, logPath, terminal: false },
             },
-            DELIVER_FOLLOWUP
+            DELIVER_WAKE
         );
     };
 

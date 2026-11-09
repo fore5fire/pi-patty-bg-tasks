@@ -123,6 +123,13 @@ export const DELIVER_STEER = { deliverAs: "steer", triggerTurn: true } as const;
  *  NOTE: sendMessage-only — `pi.sendUserMessage` rejects `triggerTurn` and
  *  takes just `{ deliverAs: "followUp" }`. */
 export const DELIVER_FOLLOWUP = { deliverAs: "followUp", triggerTurn: false } as const;
+/** Wake-if-idle delivery for live events (monitor stream events, stall and
+ *  oversize-kill notices): starts a new turn when the agent is idle — the user
+ *  isn't engaged to prompt, so a passive append would sit in the transcript
+ *  unseen — and queues passively behind the current turn when streaming
+ *  (deliverAs only applies mid-run). This was the original monitor stream-event
+ *  delivery before the v1.1.2 coalescing rework made it passive. */
+export const DELIVER_WAKE = { deliverAs: "followUp", triggerTurn: true } as const;
 
 // --- UI context ---
 export interface UiContext {
